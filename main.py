@@ -29,7 +29,7 @@ def launch():
     dataset = get_dataset(args, quids_to_exclude=quids_to_exclude, num_examples_to_run=args.num_examples_to_run)
 
     # configure prompt
-    prompter = PromptFactory().get(args.prompt_type)
+    prompter = PromptFactory().get(args.prompt_type)z
 
     # get model
     model = get_model(args)
@@ -70,6 +70,10 @@ def launch():
                 processed = eval_qa_egoschema(processed)
             elif args.dataset in ['nextqa', 'intentqa', 'nextgqa']:
                 processed = eval_qa_nextqa(args.anno_path, processed)
+            elif args.dataset == 'timos':
+                processed = eval_qa_timos(args.anno_path, processed)
+            elif args.dataset == 'timos_bc':
+                processed = eval_bc_timos_per_movie(args.anno_path, processed)
         elif args.task == 'gqa':
             if args.dataset == 'nextgqa':
                 pred_qa_path = args.nextgqa_pred_qa_path if len(args.nextgqa_pred_qa_path) > 0 else None

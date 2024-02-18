@@ -125,11 +125,108 @@ class NextDataset(BaseDataset):
                 'duration': duration,
             })
         return data
+    
+class TiMoSDataset(BaseDataset):
+    def __init__(self, args, quids_to_exclude=None, num_examples_to_run=-1):
+        self.set_ukey('quid')
+        super().__init__(args, quids_to_exclude=quids_to_exclude, num_examples_to_run=num_examples_to_run)
 
+    def get_descriptions(self):
+        narrations = load_json(self.args.data_path)
+        return narrations
+
+    def format_narration(self, narr):
+        if isinstance(narr, list):
+            caption_every = int(1/self.args.fps)
+            narr = '.\n'.join([f'{int(i*caption_every)}: {cap}' for i, cap in enumerate(narr[::caption_every])])
+        return narr
+
+    def get_anno(self):
+        return load_json(self.args.anno_path)  # video,frame_count,width,height,question,answer,qid,type,a0,a1,a2,a3,a4
+         
+    def build(self):
+        data = []
+        for row in self.anno:
+            uid = str(row['video'])
+            if uid not in self.narrations:
+                continue
+            question, truth = row['question'], row['answer']
+            qid = row['qid']
+            q_type = row['qid'].split('_')[0]
+            choices = [row['a0'], row['a1'], row['a2'], row['a3'], row['a4']]
+            quid = uid
+            narration = self.format_narration(self.narrations[uid])
+            duration = int(self.durations[uid])
+            data.append({
+                'quid': quid,
+                'uid': uid,
+                'qid': qid,
+                'q_type': q_type,
+                'narration': narration,
+                'question': question,
+                'optionA': choices[0],
+                'optionB': choices[1],
+                'optionC': choices[2],
+                'optionD': choices[3],
+                'optionE': choices[4],
+                'truth': truth,
+                'duration': duration,
+            })
+        return data
+    
+class TiMoSBCDataset(BaseDataset):
+    def __init__(self, args, quids_to_exclude=None, num_examples_to_run=-1):
+        self.set_ukey('quid')
+        super().__init__(args, quids_to_exclude=quids_to_exclude, num_examples_to_run=num_examples_to_run)
+
+    def get_descriptions(self):
+        narrations = load_json(self.args.data_path)
+        # narrations = {str(k).split('_')[0]: v for k, v in narrations.items()}
+        return narrations
+
+    def format_narration(self, narr):
+        if isinstance(narr, list):
+            caption_every = int(1/self.args.fps)
+            narr = '.\n'.join([f'{int(i*caption_every)}: {cap}' for i, cap in enumerate(narr[::caption_every])])
+        return narr
+
+    def get_anno(self):
+        return load_json(self.args.anno_path)  # video,frame_count,width,height,question,answer,qid,type,a0,a1,a2,a3,a4
+         
+    def build(self):
+        data = []
+        for row in self.anno:
+            uid = str(row['qid'])
+            if uid not in self.narrations:
+                continue
+            question, truth = row['question'], row['answer']
+            qid = row['qid']
+            q_type = row['category']
+            choices = [row['a0'], row['a1']]
+            quid = qid
+            narration = self.format_narration(self.narrations[uid])
+            duration = int(self.durations[uid.split('_')[0]])
+            data.append({
+                'quid': quid,
+                'uid': qid,
+                'qid': qid,
+                'q_type': q_type,
+                'narration': narration,
+                'question': question,
+                'optionA': choices[0],
+                'optionB': choices[1],
+                'truth': truth,
+                'duration': duration,
+            })
+        return data
 
 def get_dataset(args, quids_to_exclude=None, num_examples_to_run=-1):
     if args.dataset == 'egoschema':
         return EgoSchemaDataset(args, quids_to_exclude=quids_to_exclude, num_examples_to_run=num_examples_to_run)
+    elif args.dataset == 'timos':
+        return TiMoSDataset(args, quids_to_exclude=quids_to_exclude, num_examples_to_run=num_examples_to_run)
+    elif args.dataset == 'timos_bc':
+        return TiMoSBCDataset(args, quids_to_exclude=quids_to_exclude, num_examples_to_run=num_examples_to_run)
     else:
         return NextDataset(args, quids_to_exclude=quids_to_exclude, num_examples_to_run=num_examples_to_run)
 

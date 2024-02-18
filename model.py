@@ -1,3 +1,4 @@
+import time
 import openai
 from openai import OpenAI
 from transformers import AutoTokenizer
@@ -5,6 +6,7 @@ import torch
 import transformers
 from prompts import identity
 import pdb
+import backoff
 from pprint import pprint
 
 
@@ -30,30 +32,34 @@ class GPT(Model):
         super().__init__()
         self.model_name = model_name
         self.temperature = temperature
-        self.client = OpenAI(api_key=api_key)
+        self.client = OpenAI(
+            api_key=api_key,
+            organization='org-unHAfI1gQZjzzhmDuSYTNU9H',
+        )
 
+    # @backoff.on_exception(backoff.expo, openai.RateLimitError)
     def get_response(self, **kwargs):
+        # return self.client.chat.completions.create(**kwargs)
         try:
             res = self.client.chat.completions.create(**kwargs)
             return res
+        # except Exception as e:
+        #     print(e)
+        #     raise e
         except openai.APIConnectionError as e:
-            print('APIConnectionError')
-            time.sleep(30)
-            return self.get_response(**kwargs)
-        except openai.APIConnectionError as err:
-            print('APIConnectionError')
+            print(f'APIConnectionError: {e}')
             time.sleep(30)
             return self.get_response(**kwargs)
         except openai.RateLimitError as e:
-            print('RateLimitError')
-            time.sleep(10)
+            print(f'RateLimitError: {e}')
+            exit()
             return self.get_response(**kwargs)
         except openai.APITimeoutError as e:
-            print('APITimeoutError')
+            print(f'APITimeoutError: {e}')
             time.sleep(30)
             return self.get_response(**kwargs)
         except openai.BadRequestError as e:
-            print('BadRequestError')
+            print(f'BadRequestError: {e}')
             kwargs['model'] = 'gpt-3.5-turbo-16k'
             return self.get_response(**kwargs)
 

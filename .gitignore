@@ -14,3 +14,6 @@ venv.bak/
 
 # project specific
 llovi_env/
+
+data/
+output/
