@@ -41,6 +41,7 @@ def parse_args():
     parser.add_argument("--backup_pred_path", default="", type=str)
     ## fewshot
     parser.add_argument("--fewshot_example_path", default="", type=str) 
+    parser.add_argument("--summarization_example_path", default="", type=str)
     ## nextgqa
     parser.add_argument("--nextgqa_gt_ground_path", default="", type=str)
     parser.add_argument("--nextgqa_pred_qa_path", default="", type=str)
@@ -81,6 +82,18 @@ def build_fewshot_examples(qa_path, data_path):
         examplars.append(f"Examplar {i}.\n Descriptions: {description}.\n Question: {examplar['question']}\n A: {examplar['0']}\n B: {examplar['1']}\n C: {examplar['2']}\n D: {examplar['3']}\n E: {examplar['4']}\n Answer: {int_to_letter[examplar['truth']]}.")
     examplars = '\n\n'.join(examplars)
     return examplars
-    
-    
+
+def build_fewshot_summarization_example(summarization_example_path, fps):
+    if len(summarization_example_path) == 0:
+        return None
+    data = load_json(summarization_example_path)
+    examplars = []
+    for i, (_uid, info) in enumerate(data.items()):
+        captions = info['captions']
+        caption_every = int(1/fps)
+        narrations = '.\n'.join([f'{int(i*caption_every)}: {cap}' for i, cap in enumerate(captions[::caption_every])])
+        summarization = ''.join(info['summarization'])
+        examplars.append(f"Example {i}.\n Narrations: {narrations}\n Summary: {summarization}.")
+    examplars = '\n\n'.join(examplars)
+    return examplars
     

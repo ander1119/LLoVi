@@ -168,6 +168,15 @@ class PromptFactory(object):
             post_process_fn = first_char_as_answer
         )
 
+        # timos QA (summary as input)
+        prompt_templates['timos_qa_sum_reason'] = PromptTemplate(
+            head = "You are a trope detector, tasked with identifying the presence or absence of a specific trope in an movie.",
+            template = [
+                Template("Please provide a single-letter answer (A, B, C, D, E) to the following multiple-choice question, and your answer must be one of the letters (A, B, C, D, or E) and place answer in the beginning of response. You must also provide explanation about why choosing your answer. You are given some language descriptions of movie. The video is $duration seconds long. Here are the descriptions: $narration.\n You are going to answer a multiple choice question based on the descriptions, and your answer should be a single letter chosen from the choices.\n Here is the question: $question.\n Here are the choices.\n A: $optionA\n B: $optionB\n C: $optionC\n D: $optionD\n E: $optionE\n"),
+            ],
+            post_process_fn = first_char_as_answer
+        )
+
         # timos BC (summary as input)
         prompt_templates['timos_bc_sum'] = PromptTemplate(
             head = "You are a trope detector, tasked with identifying the presence or absence of a specific trope in an movie.",
@@ -191,6 +200,15 @@ class PromptFactory(object):
             head = "You are a trope detector, tasked with identifying the presence or absence of a specific trope in an movie.",
             template = [
                 Template('You are given some language descriptions of a movie. The video is $duration seconds long. Each sentence describes a ${clip_length}s clip. Here are the descriptions: $narration.\n Please give me a $num_words words summary.')
+            ],
+            post_process_fn = identity
+        )
+
+        # timos in-context learning sum
+        prompt_templates['timos_sum_incontext'] = PromptTemplate(
+            head = "You are a trope detector, tasked with identifying the presence or absence of a specific trope in an movie.",
+            template = [
+                Template('You are given some language descriptions of a movie. The movie is $duration seconds long. Each sentence/description describes a frame in movie. Your task is to make an $num_words words summary for those descriptions. Here are a few example. \n${summarization_examplars}\n\n Now here are descriptions: $narration.\n Please give me a $num_words words summary.')
             ],
             post_process_fn = identity
         )

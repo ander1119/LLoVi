@@ -59,9 +59,13 @@ class GPT(Model):
             time.sleep(30)
             return self.get_response(**kwargs)
         except openai.BadRequestError as e:
-            print(f'BadRequestError: {e}')
-            kwargs['model'] = 'gpt-3.5-turbo-16k'
-            return self.get_response(**kwargs)
+            raise e
+            # if kwargs["model"] == "gpt-3.5-turbo-16k":
+            #     raise e
+            # else:
+            #     print(f'BadRequestError: {e}')
+            #     kwargs['model'] = 'gpt-3.5-turbo-16k'
+            #     return self.get_response(**kwargs)
 
     def forward(self, head, prompts):
         messages = [
@@ -72,11 +76,20 @@ class GPT(Model):
             messages.append(
                 {"role": "user", "content": prompt}
             )
-            response = self.get_response(
-                model=self.model_name,
-                messages=messages,
-                temperature=self.temperature,
-            )
+            try:
+                response = self.get_response(
+                    model=self.model_name,
+                    messages=messages,
+                    temperature=self.temperature,
+                )
+            except openai.BadRequestError as e:
+                # print(e)
+                # response = self.get_response(
+                #     model='gpt-3.5-turbo-16k',
+                #     messages=messages,
+                #     temperature=self.temperature,
+                # )
+                raise e
             messages.append(
                 {"role": "assistant", "content": response.choices[0].message.content}
             )

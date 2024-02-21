@@ -7,7 +7,7 @@ from prompts import PromptFactory
 from model import get_model
 from tqdm import tqdm
 from pprint import pprint
-
+import openai
 
 def launch():
     args = parse_args()
@@ -29,7 +29,7 @@ def launch():
     dataset = get_dataset(args, quids_to_exclude=quids_to_exclude, num_examples_to_run=args.num_examples_to_run)
 
     # configure prompt
-    prompter = PromptFactory().get(args.prompt_type)z
+    prompter = PromptFactory().get(args.prompt_type)
 
     # get model
     model = get_model(args)
@@ -38,10 +38,23 @@ def launch():
     # answer
     pbar = tqdm(total=len(dataset))
     for i, item in enumerate(dataset):
-        clip_length = int(1/args.fps) if args.fps < 1 else 1/args.fps
-        few_shot_examples = build_fewshot_examples(args.fewshot_example_path, args.data_path)
-        prompt = prompter.fill(**item, fps=args.fps, clip_length=clip_length, num_words=args.num_words_in_sum, examplars=few_shot_examples)
-        pred, info = model.forward(prompter.head, prompt)
+        fps = args.fps
+        while True:
+            try:
+                # print(fps)
+                # clip_length = int(1/args.fps) if args.fps < 1 else 1/args.fps
+                clip_length = int(1/fps) if fps < 1 else 1/fps
+                few_shot_examples = build_fewshot_examples(args.fewshot_example_path, args.data_path)
+                # summarization_examples = build_fewshot_summarization_example(args.summarization_example_path, args.fps)
+                summarization_examples = build_fewshot_summarization_example(args.summarization_example_path, fps)
+                # prompt = prompter.fill(**item, fps=args.fps, clip_length=clip_length, num_words=args.num_words_in_sum, examplars=few_shot_examples, summarization_examplars=summarization_examples)
+                prompt = prompter.fill(**item, fps=fps, clip_length=clip_length, num_words=args.num_words_in_sum, examplars=few_shot_examples, summarization_examplars=summarization_examples)
+                pred, info = model.forward(prompter.head, prompt)
+                break
+            except openai.BadRequestError as e:
+                print(e)
+                fps -= 0.01
+
         ukey_name = 'quid' if 'quid' in item else 'uid'
         ukey = item[ukey_name]
         processed[ukey] = item
