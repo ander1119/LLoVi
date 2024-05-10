@@ -213,6 +213,15 @@ class PromptFactory(object):
             post_process_fn = identity
         )
 
+        # timos in-context learning synopsis
+        prompt_templates['timos_synopsis_incontext'] = PromptTemplate(
+            head = "You are a trope detector, tasked with identifying the presence or absence of a specific trope in an movie.",
+            template = [
+                Template('You are given some language descriptions of a movie. The movie is $duration seconds long. Each sentence/description describes a caption for frame in movie. Your task is to make an $num_words words synopsis from those descriptions. Here are a few example. \n${summarization_examplars}\n\n. Note that examples are irrelevant to the descriptions your are about to read. Now here are descriptions: $narration.\n Please give me a $num_words words synopsis.')
+            ],
+            post_process_fn = identity
+        )
+
         # timos sum (q)
         prompt_templates['timos_sum_q'] = PromptTemplate(
             head = "You are a trope detector, tasked with identifying the presence or absence of a specific trope in an movie.",

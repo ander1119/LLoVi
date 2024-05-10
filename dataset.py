@@ -197,18 +197,21 @@ class TiMoSBCDataset(BaseDataset):
         data = []
         for row in self.anno:
             uid = str(row['qid'])
-            if uid not in self.narrations:
-                continue
             question, truth = row['question'], row['answer']
-            qid = row['qid']
+            # qid = row['qid']
+            quid, qid = uid.split('_')
             q_type = row['category']
             choices = [row['a0'], row['a1']]
-            quid = qid
-            narration = self.format_narration(self.narrations[uid])
-            duration = int(self.durations[uid.split('_')[0]])
+            # quid = qid
+
+            if quid not in self.narrations:
+                continue
+
+            narration = self.format_narration(self.narrations[quid])
+            duration = int(self.durations[quid])
             data.append({
                 'quid': quid,
-                'uid': qid,
+                'uid': uid,
                 'qid': qid,
                 'q_type': q_type,
                 'narration': narration,

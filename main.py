@@ -55,7 +55,7 @@ def launch():
                 print(e)
                 fps -= 0.01
 
-        ukey_name = 'quid' if 'quid' in item else 'uid'
+        ukey_name = 'uid' if 'uid' in item else 'quid'
         ukey = item[ukey_name]
         processed[ukey] = item
         processed[ukey]['prompt_template'] = prompter.get_template_str()

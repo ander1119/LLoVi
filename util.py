@@ -96,4 +96,19 @@ def build_fewshot_summarization_example(summarization_example_path, fps):
         examplars.append(f"Example {i}.\n Narrations: {narrations}\n Summary: {summarization}.")
     examplars = '\n\n'.join(examplars)
     return examplars
+
+def build_fewshot_synopsis_example(summarization_example_path, fps):
+    if len(summarization_example_path) == 0:
+        return None
+    data = load_json(summarization_example_path)
+    examplars = []
+    examplars.append(f'Each example below has two part, first part is the narrations with frame index in beginning of the line, second part is the synopsis.\n')
+    for i, (_uid, info) in enumerate(data.items()):
+        captions = info['captions']
+        caption_every = int(1/fps)
+        narrations = '.\n'.join([f'{int(i*caption_every)}: {cap}' for i, cap in enumerate(captions[::caption_every])])
+        summarization = ''.join(info['summarization'])
+        examplars.append(f"Example {i}.\n Narrations: {narrations}\n Synopsis: {summarization}.")
+    examplars = '\n\n'.join(examplars)
+    return examplars
     
