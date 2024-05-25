@@ -62,6 +62,7 @@ class PromptTemplate(object):
         return template
 
     def fill(self, **kwargs):
+        # print(kwargs)
         # match variable names: duration, narration, question, optionA, optionB, optionC, optionD, optionE, num_words
         prompt_filled = []
         for temp in self.prompt_template:
@@ -150,92 +151,29 @@ class PromptFactory(object):
             post_process_fn = first_char_as_answer
         )
 
-        # timos QA
-        prompt_templates['timos'] = PromptTemplate(
+        # tim BC (summary as input)
+        prompt_templates['tim_bc_sum'] = PromptTemplate(
             head = "You are a trope detector, tasked with identifying the presence or absence of a specific trope in an movie.",
             template = [
-                Template("Please provide a single-letter answer (A, B, C, D, E) to the following multiple-choice question, and your answer must be one of the letters (A, B, C, D, or E). You must not provide any other response or explanation. If you are not sure, answer with the most likely answer. You are given some language descriptions of a movie. The video is 1 FPS and the descriptions are the captions every 1 frames. Each caption starts with the frame number.\nHere are the descriptions:\n$narration\n Here is the question: $question?\n Here are the choices:\n (A): $optionA\n (B): $optionB\n (C): $optionC\n (D): $optionD\n (E): $optionE\n"),
-            ],
-            post_process_fn = first_char_as_answer
-        )
-
-        # timos QA (summary as input)
-        prompt_templates['timos_qa_sum'] = PromptTemplate(
-            head = "You are a trope detector, tasked with identifying the presence or absence of a specific trope in an movie.",
-            template = [
-                Template("Please provide a single-letter answer (A, B, C, D, E) to the following multiple-choice question, and your answer must be one of the letters (A, B, C, D, or E). You must not provide any other response or explanation. You are given some language descriptions of movie. The video is $duration seconds long. Here are the descriptions: $narration.\n You are going to answer a multiple choice question based on the descriptions, and your answer should be a single letter chosen from the choices.\n Here is the question: $question.\n Here are the choices.\n A: $optionA\n B: $optionB\n C: $optionC\n D: $optionD\n E: $optionE\n"),
-            ],
-            post_process_fn = first_char_as_answer
-        )
-
-        # timos QA (summary as input)
-        prompt_templates['timos_qa_sum_reason'] = PromptTemplate(
-            head = "You are a trope detector, tasked with identifying the presence or absence of a specific trope in an movie.",
-            template = [
-                Template("Please provide a single-letter answer (A, B, C, D, E) to the following multiple-choice question, and your answer must be one of the letters (A, B, C, D, or E) and place answer in the beginning of response. You must also provide explanation about why choosing your answer. You are given some language descriptions of movie. The video is $duration seconds long. Here are the descriptions: $narration.\n You are going to answer a multiple choice question based on the descriptions, and your answer should be a single letter chosen from the choices.\n Here is the question: $question.\n Here are the choices.\n A: $optionA\n B: $optionB\n C: $optionC\n D: $optionD\n E: $optionE\n"),
-            ],
-            post_process_fn = first_char_as_answer
-        )
-
-        # timos BC (summary as input)
-        prompt_templates['timos_bc_sum'] = PromptTemplate(
-            head = "You are a trope detector, tasked with identifying the presence or absence of a specific trope in an movie.",
-            template = [
-                Template("Please provide a single-letter answer (A, B) to the following classification question, and your answer must be one of the letters (A, B). You must not provide any other response or explanation. You are given some language descriptions of movie. The video is $duration seconds long. Here are the descriptions: $narration.\n You are going to answer a multiple choice question based on the descriptions, and your answer should be a single letter chosen from the choices.\n Here is the question: $question.\n Here are the choices.\n A: $optionA\n B: $optionB\n"),
-            ],
-            post_process_fn = first_char_as_answer
-        )
-
-        # timos BC (summary as input)
-        prompt_templates['timos_bc_sum_reason'] = PromptTemplate(
-            head = "You are a trope detector, tasked with identifying the presence or absence of a specific trope in an movie.",
-            template = [
-                Template("Please provide a single-letter answer (A, B) to the following classification question, and your answer must be one of the letters (A, B). You must also provide explanation about why specific trope is relevant to the movie. You are given some language descriptions of movie. The video is $duration seconds long. Here are the descriptions: $narration.\n You are going to answer a multiple choice question based on the descriptions, and your answer should be a single letter chosen from the choices.\n Here is the question: $question.\n Here are the choices.\n A: $optionA\n B: $optionB\n"),
+                Template("Please provide a single-letter answer (A, B) to the following classification question, and your answer must be one of the letters (A, B). You must not provide any other response or explanation. You are given some language descriptions of movie. Here are the descriptions: $narration.\n You are going to answer a multiple choice question based on the descriptions, and your answer should be a single letter chosen from the choices.\n Here is the question: $question.\n Here are the choices.\n A: $optionA\n B: $optionB\n"),
             ],
             post_process_fn = first_char_as_answer
         )
 
         # timos sum (standard)
-        prompt_templates['timos_sum_standard'] = PromptTemplate(
-            head = "You are a trope detector, tasked with identifying the presence or absence of a specific trope in an movie.",
+        prompt_templates['tim_sum_standard'] = PromptTemplate(
+            head = "You are professinoal movie summarizer. You are tasked with summarizing a movie according descriptions over frame in movie.",
             template = [
-                Template('You are given some language descriptions of a movie. The video is $duration seconds long. Each sentence describes a ${clip_length}s clip. Here are the descriptions: $narration.\n Please give me a $num_words words summary.')
+                Template('You are given some language descriptions of a movie. The movie has ${num_frames} frames and there is one sentence describing each frame. Here are the descriptions: $narration.\n Please give me a $num_words words summary.')
             ],
             post_process_fn = identity
         )
 
-        # timos in-context learning sum
-        prompt_templates['timos_sum_incontext'] = PromptTemplate(
+        # tim sum (q)
+        prompt_templates['tim_sum_q'] = PromptTemplate(
             head = "You are a trope detector, tasked with identifying the presence or absence of a specific trope in an movie.",
             template = [
-                Template('You are given some language descriptions of a movie. The movie is $duration seconds long. Each sentence/description describes a frame in movie. Your task is to make an $num_words words summary for those descriptions. Here are a few example. \n${summarization_examplars}\n\n Now here are descriptions: $narration.\n Please give me a $num_words words summary.')
-            ],
-            post_process_fn = identity
-        )
-
-        # timos in-context learning synopsis
-        prompt_templates['timos_synopsis_incontext'] = PromptTemplate(
-            head = "You are a trope detector, tasked with identifying the presence or absence of a specific trope in an movie.",
-            template = [
-                Template('You are given some language descriptions of a movie. The movie is $duration seconds long. Each sentence/description describes a caption for frame in movie. Your task is to make an $num_words words synopsis from those descriptions. Here are a few example. \n${summarization_examplars}\n\n. Note that examples are irrelevant to the descriptions your are about to read. Now here are descriptions: $narration.\n Please give me a $num_words words synopsis.')
-            ],
-            post_process_fn = identity
-        )
-
-        # timos sum (q)
-        prompt_templates['timos_sum_q'] = PromptTemplate(
-            head = "You are a trope detector, tasked with identifying the presence or absence of a specific trope in an movie.",
-            template = [
-                Template('You are given some language descriptions of a movie. The video is $duration seconds long. Each sentence describes a ${clip_length}s clip. The descriptions are sequential and non-overlapping which cover the whole movie exactly. Here are the descriptions: $narration.\n Please give me a $num_words words summary. When doing summarization, remember that your summary will be used to answer this multiple choice question: $question'),
-            ],
-            post_process_fn = identity
-        )
-
-        # timos sum (qa)
-        prompt_templates['timos_sum_qa'] = PromptTemplate(
-            head = "You are a trope detector, tasked with identifying the presence or absence of a specific trope in an movie.",
-            template = [
-                Template('You are given some language descriptions of a movie. The video is $duration seconds long. Each sentence describes a ${clip_length}s clip. Here are the descriptions: $narration.\n Please give me a $num_words words summary. When doing summarization, remember that your summary will be used to answer this multiple choice question: $question\n Here are the choices.\n A: $optionA\n B: $optionB\n C: $optionC\n D: $optionD\n E: $optionE\n Do not answer this question directly. Instead, use the question and choices to guide your summary.')
+                Template('You are given some language descriptions of a movie. The movie has ${num_frames} frames and there is one sentence describing each frame. The descriptions are sequential and non-overlapping which cover the whole movie exactly. Here are the descriptions: $narration.\n Please give me a $num_words words summary. When doing summarization, remember that your summary will be used to answer this multiple choice question: $question'),
             ],
             post_process_fn = identity
         )

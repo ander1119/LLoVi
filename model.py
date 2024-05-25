@@ -1,6 +1,7 @@
 import time
 import openai
-from openai import OpenAI
+# from openai import OpenAI
+import openai
 from transformers import AutoTokenizer
 import torch
 import transformers
@@ -8,6 +9,7 @@ from prompts import identity
 import pdb
 import backoff
 from pprint import pprint
+
 
 
 def get_model(args):
@@ -32,20 +34,14 @@ class GPT(Model):
         super().__init__()
         self.model_name = model_name
         self.temperature = temperature
-        self.client = OpenAI(
-            api_key=api_key,
-            organization='org-unHAfI1gQZjzzhmDuSYTNU9H',
-        )
+        openai.api_key = api_key
 
     # @backoff.on_exception(backoff.expo, openai.RateLimitError)
     def get_response(self, **kwargs):
         # return self.client.chat.completions.create(**kwargs)
         try:
-            res = self.client.chat.completions.create(**kwargs)
+            res = openai.ChatCompletion.create(**kwargs)
             return res
-        # except Exception as e:
-        #     print(e)
-        #     raise e
         except openai.APIConnectionError as e:
             print(f'APIConnectionError: {e}')
             time.sleep(30)
@@ -60,12 +56,6 @@ class GPT(Model):
             return self.get_response(**kwargs)
         except openai.BadRequestError as e:
             raise e
-            # if kwargs["model"] == "gpt-3.5-turbo-16k":
-            #     raise e
-            # else:
-            #     print(f'BadRequestError: {e}')
-            #     kwargs['model'] = 'gpt-3.5-turbo-16k'
-            #     return self.get_response(**kwargs)
 
     def forward(self, head, prompts):
         messages = [
@@ -83,12 +73,6 @@ class GPT(Model):
                     temperature=self.temperature,
                 )
             except openai.BadRequestError as e:
-                # print(e)
-                # response = self.get_response(
-                #     model='gpt-3.5-turbo-16k',
-                #     messages=messages,
-                #     temperature=self.temperature,
-                # )
                 raise e
             messages.append(
                 {"role": "assistant", "content": response.choices[0].message.content}

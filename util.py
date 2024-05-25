@@ -35,6 +35,7 @@ def parse_args():
     parser.add_argument("--data_path", default='data/egoschema/lavila_subset.json', type=str) 
     parser.add_argument("--anno_path", default='data/egoschema/subset_anno.json', type=str)  
     parser.add_argument("--duration_path", default='data/egoschema/duration.json', type=str) 
+    parser.add_argument("--max_num_frames", default=120, type=int) 
     parser.add_argument("--fps", default=1.0, type=float) 
     parser.add_argument("--num_examples_to_run", default=-1, type=int)
     ## backup pred

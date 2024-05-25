@@ -32,204 +32,33 @@ def eval_qa_egoschema_from_file(fp):
         data = data['data']
     eval_qa_egoschema(data)
 
-def eval_bc_timos_from_file_per_movie(anno_file_path, pred_file_path):
+def eval_bc_timos_from_file(pred_file_path):
     data = load_json(pred_file_path)
     if 'data' in data:
         data = data['data']
-    eval_bc_timos_per_movie(anno_file_path, data)
+    eval_bc_tim(data)
 
-def eval_bc_timos_from_file(anno_file_path, pred_file_path):
-    data = load_json(pred_file_path)
-    if 'data' in data:
-        data = data['data']
-    eval_bc_timos(anno_file_path, data)
-
-def eval_bc_timos(anno_file_path, preds):
-    sample_list = load_json(anno_file_path)
-    categories = {
-        'Character Trait': {
-            'tp': 0, 'fp': 0, 'fn': 0, 'tn': 0
-        },
-        'Role Interaction': {
-            'tp': 0, 'fp': 0, 'fn': 0, 'tn': 0
-        },
-        'Situation': {
-            'tp': 0, 'fp': 0, 'fn': 0, 'tn': 0
-        },
-        'Story Line': {
-            'tp': 0, 'fp': 0, 'fn': 0, 'tn': 0
-        },
-        'Total': {
-            'tp': 0, 'fp': 0, 'fn': 0, 'tn': 0
-        }
-    }
-
-    for uid, info in preds.items():
-        qtype = str(info['q_type'])
-        answer = info['truth']
-        pred = info['pred']
-        if answer == pred and answer == 0:
-            categories[qtype]['tp'] += 1
-            categories['Total']['tp'] += 1
-        elif answer == pred and answer == 1:
-            categories[qtype]['tn'] += 1
-            categories['Total']['tn'] += 1
-        elif answer != pred and answer == 0:
-            categories[qtype]['fn'] += 1
-            categories['Total']['fn'] += 1
-        elif answer != pred and answer == 1:
-            categories[qtype]['fp'] += 1
-            categories['Total']['fp'] += 1
-
-    stat = {}
-    for qtype, info in categories.items():
-        print(f'\n{qtype}:')
-        tp = info['tp']
-        fp = info['fp']
-        fn = info['fn']
-        tn = info['tn']
-
-        if tp + fp == 0:
-            precision = 0
-        else:
-            precision = tp / (tp + fp)
-
-        if tp + fn == 0:
-            recall = 0
-        else:
-            recall = tp / (tp + fn)
-
-        if precision + recall == 0:
-            f1 = 0
-        else:  
-            f1 = 2 * precision * recall / (precision + recall)
-
-        acc = (tp + tn) / (tp + tn + fp + fn)
-
-        stat[qtype] = {
-            'precision': precision,
-            'recall': recall,
-            'f1': f1,
-            'acc': acc
-        }
-        print(f'{tp}, {fp}, {fn}, {tn}')
-        print('\t      Acc: {:.2f}'.format(acc*100.0))
-        print('\tPrecision: {:.2f}'.format(precision))
-        print('\t   Recall: {:.2f}'.format(recall))
-        print('\t F1 Score: {:.2f}'.format(f1))
-    
-    stat['data'] = preds
-    return stat
-
-def eval_bc_timos_per_movie(anno_file_path, preds):
+def eval_bc_tim(preds):
     from sklearn.metrics import precision_recall_fscore_support
-    import json
-    # tropes = ['Big Bad', 'Jerkass', 'Faux Affably Evil', 'Smug Snake', 'Abusive Parents', 'Would Hurt a Child', 'Action Girl', 'Reasonable Authority Figure', 'Papa Wolf', 'Deadpan Snarker', 'Determinator', 'Only Sane Man', 'Anti-Hero', 'Asshole Victim', 'Jerk with a Heart of Gold', 'Even Evil Has Standards', 'Affably Evil', 'Too Dumb to Live', 'Butt-Monkey', 'Ax-Crazy', 'Adorkable', 'Berserk Button', 'Ms. Fanservice', 'The Alcoholic', 'Disappeared Dad', 'Would Hit a Girl', 'Oh, Crap!', 'Driven to Suicide', 'Adult Fear', 'Not So Different', 'Heroic BSoD', 'Big \\"NO!\\"', 'Eye Scream', 'Gory Discretion Shot', 'Impaled with Extreme Prejudice', 'Off with His Head!', 'Disney Villain Death', 'Your Cheating Heart', '\\"The Reason You Suck\\" Speech', 'Tempting Fate', 'Disproportionate Retribution', 'Badass Boast', 'Groin Attack', 'Roaring Rampage of Revenge', 'Big Damn Heroes', 'Heroic Sacrifice', "Screw This, I'm Outta Here!", 'Kick the Dog', 'Pet the Dog', 'Villainous Breakdown', 'Precision F-Strike', 'Cluster F-Bomb', 'Jerkass Has a Point', 'Idiot Ball', 'Batman Gambit', 'Police are Useless', 'The Dragon', 'Cool Car', 'Body Horror', 'The Reveal', 'Curb-Stomp Battle', 'Cassandra Truth', 'Blatant Lies', 'Crapsack World', 'Comically Missing the Point', 'Fanservice', 'Fan Disservice', 'Brick Joke', 'Hypocritical Humor', 'Does This Remind You of Anything?', 'Black Comedy', 'Irony', 'Exact Words', 'Stealth Pun', 'Bittersweet Ending', 'Karma Houdini', 'Downer Ending', 'Laser-Guided Karma', 'Earn Your Happy Ending', 'Karmic Death', 'Nice Job Breaking It, Hero!', 'My God, What Have I Done?', 'What the Hell, Hero?', 'Hope Spot', 'Heel Face Turn', 'Took a Level in Badass', "Chekhov's Gun", 'Foreshadowing', "Chekhov's Skill", "Chekhov's Gunman", 'Red Herring', 'Ironic Echo', 'Hoist by His Own Petard', 'Meaningful Echo', 'Freudian Excuse']
-
-    tropes = ['Kick the Dog','Big Bad','What the Hell, Hero?', "Chekhov's Gunman", 'Irony', 'Determinator', "Screw This, I'm Outta Here!",'Adorkable', 'Adult Fear', 'Too Dumb to Live', 'Deadpan Snarker', 'Would Hurt a Child','Eye Scream','Stealth Pun', 'Not So Different','Bittersweet Ending','Only Sane Man','Smug Snake','Red Herring','Blatant Lies']
-    trope2id = {}
-    for i in range(len(tropes)):
-        trope2id[tropes[i]] = i
-
-    predictions = {}
-    ground_truth = {}
+    predictions = []
+    groundtruths = []
 
     for uid, info in preds.items():
-        uid = uid.split('_')[0]
-        answer = info['truth']
-        pred = info['pred']
-        trope = info['question'].split('\"')[1]
+        predictions.append(1 if info['pred'] == 0 else 1)
+        groundtruths.append(1 if info['truth'] == 0 else 1)
 
-        if trope not in tropes:
-            continue
-
-        if uid not in predictions:
-            predictions[uid] = [0] * len(tropes)
-            ground_truth[uid] = [0] * len(tropes)
-        
-        predictions[uid][trope2id[trope]] = 1 if pred == 0 else 0
-        ground_truth[uid][trope2id[trope]] = 1 if answer == 0 else 0
-
-    print(len(predictions))
-    for uid in predictions:
-        print(uid)
-        print('\t', predictions[uid])
-        print('\t', ground_truth[uid])
-    # print(json.dumps(predictions, indent=4))
-    # print(json.dumps(ground_truth, indent=4))
-
-    predictions = [predictions[uid] for uid in predictions]
-    ground_truth = [ground_truth[uid] for uid in ground_truth]
-
-    f1 = precision_recall_fscore_support(ground_truth, predictions, average="macro")
-
-    print("per trope")
-    print("\tprecision", f1[0])
-    print("\trecall", f1[1])
-    print("\tf1", f1[2])
-
+    accuracy = sum(1 for p, t in zip(predictions, groundtruths) if p == t) / len(groundtruths)
+    f1 = precision_recall_fscore_support(groundtruths, predictions, average="binary")
+    score = {
+        'precision': f1[0],
+        'recall': f1[1],
+        'f1': f1[2],
+        'accuracy': accuracy
+    }
+    print(score)
     stat = {}
     stat['data'] = preds
-    return stat
-
-def eval_qa_timos(anno_file_path, preds):
-    sample_list = load_json(anno_file_path)
-    group = {
-        'Character Trait': [],
-        'Role Interaction': [],
-        'Situation': [],
-        'Story Line': []
-    }
-    for sample in sample_list:
-        uid = str(sample['video'])
-        if uid not in preds:
-            continue
-        qtype = str(sample['qid']).split('_')[0]
-        group[qtype].append(uid)
-
-    group_acc = {
-        'Character Trait': 0,
-        'Role Interaction': 0,
-        'Situation': 0,
-        'Story Line': 0,
-    }
-    group_cnt = {
-        'Character Trait': 0,
-        'Role Interaction': 0,
-        'Situation': 0,
-        'Story Line': 0
-    }
-    all_acc = 0
-    all_cnt = 0
-    for qtype, uids in group.items():
-        cnt = 0
-        acc = 0
-        for uid in uids:
-            cnt += 1
-            answer = preds[uid]['truth']
-            pred = preds[uid]['pred']
-
-            if answer == pred: 
-                acc += 1
-
-        group_cnt[qtype] = cnt
-        group_acc[qtype] += acc
-        all_acc += acc
-        all_cnt += cnt
-
-    stat = {}
-    for qtype, acc in group_acc.items():
-        print(f'{qtype}: ')
-        if group_cnt[qtype] == 0:
-            stat[qtype] = 0
-            print('{:.2f}'.format(0))
-        else:
-            stat[qtype] = acc*100.0/group_cnt[qtype]
-            print('{:.2f}'.format(acc*100.0/group_cnt[qtype]))
-    stat['Acc'] = all_acc*100.0/all_cnt
-    print(f'Total Acc: ')
-    print('{:.2f}'.format(all_acc*100.0/all_cnt))
-    stat['data'] = preds
+    stat['score'] = score
     return stat
 
 def eval_qa_nextqa(anno_file_path, preds):

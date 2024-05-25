@@ -38,22 +38,8 @@ def launch():
     # answer
     pbar = tqdm(total=len(dataset))
     for i, item in enumerate(dataset):
-        fps = args.fps
-        while True:
-            try:
-                # print(fps)
-                # clip_length = int(1/args.fps) if args.fps < 1 else 1/args.fps
-                clip_length = int(1/fps) if fps < 1 else 1/fps
-                few_shot_examples = build_fewshot_examples(args.fewshot_example_path, args.data_path)
-                # summarization_examples = build_fewshot_summarization_example(args.summarization_example_path, args.fps)
-                summarization_examples = build_fewshot_summarization_example(args.summarization_example_path, fps)
-                # prompt = prompter.fill(**item, fps=args.fps, clip_length=clip_length, num_words=args.num_words_in_sum, examplars=few_shot_examples, summarization_examplars=summarization_examples)
-                prompt = prompter.fill(**item, fps=fps, clip_length=clip_length, num_words=args.num_words_in_sum, examplars=few_shot_examples, summarization_examplars=summarization_examples)
-                pred, info = model.forward(prompter.head, prompt)
-                break
-            except openai.BadRequestError as e:
-                print(e)
-                fps -= 0.01
+        prompt = prompter.fill(**item, num_words=args.num_words_in_sum)
+        pred, info = model.forward(prompter.head, prompt)
 
         ukey_name = 'uid' if 'uid' in item else 'quid'
         ukey = item[ukey_name]
@@ -83,10 +69,6 @@ def launch():
                 processed = eval_qa_egoschema(processed)
             elif args.dataset in ['nextqa', 'intentqa', 'nextgqa']:
                 processed = eval_qa_nextqa(args.anno_path, processed)
-            elif args.dataset == 'timos':
-                processed = eval_qa_timos(args.anno_path, processed)
-            elif args.dataset == 'timos_bc':
-                processed = eval_bc_timos_per_movie(args.anno_path, processed)
         elif args.task == 'gqa':
             if args.dataset == 'nextgqa':
                 pred_qa_path = args.nextgqa_pred_qa_path if len(args.nextgqa_pred_qa_path) > 0 else None
@@ -94,7 +76,9 @@ def launch():
         elif args.task == 'sum':
             processed, sum_data = eval_sum(processed)
             save_json(sum_data, f'{Path(output_path).parent / Path(output_path).stem}_data.json')
-
+        elif args.task == 'bc':
+            if args.dataset == 'tim_sum_bc':
+                processed = eval_bc_tim(processed)
     save_json(processed, output_path)
 
 

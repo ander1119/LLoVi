@@ -1,3 +1,4 @@
+import numpy as np
 from util import save_json, load_json, save_pkl, load_pkl, makedir, parse_args
 from torch.utils.data import Dataset
 import pandas as pd
@@ -13,7 +14,7 @@ class BaseDataset(Dataset):
         self.args = args
         self.narrations = self.get_descriptions()  # uid --> list of str  or  uid --> str
         self.anno = self.get_anno()
-        self.durations = load_json(args.duration_path)  # uid --> float
+        # self.durations = load_json(args.duration_path)  # uid --> float
         data = self.build()
         data = self.filter(data, quids_to_exclude, num_examples_to_run)
         self.data = data
@@ -126,19 +127,25 @@ class NextDataset(BaseDataset):
             })
         return data
     
-class TiMoSDataset(BaseDataset):
+class TiMSumDataset(BaseDataset):
     def __init__(self, args, quids_to_exclude=None, num_examples_to_run=-1):
-        self.set_ukey('quid')
+        self.set_ukey('uid')
         super().__init__(args, quids_to_exclude=quids_to_exclude, num_examples_to_run=num_examples_to_run)
 
     def get_descriptions(self):
         narrations = load_json(self.args.data_path)
+        # narrations = {str(k).split('_')[0]: v for k, v in narrations.items()}
         return narrations
 
     def format_narration(self, narr):
-        if isinstance(narr, list):
-            caption_every = int(1/self.args.fps)
-            narr = '.\n'.join([f'{int(i*caption_every)}: {cap}' for i, cap in enumerate(narr[::caption_every])])
+        total_num_frames = len(narr)
+        num_frames = total_num_frames
+        if self.args.max_num_frames is not None:
+            num_frames = min(self.args.max_num_frames, num_frames)
+        frame_idxs = np.linspace(0, total_num_frames, num_frames, endpoint=False).astype(np.int64)
+        if isinstance(narr, dict):
+            narr = list(narr.values())
+        narr = [narr[i] for i in frame_idxs]
         return narr
 
     def get_anno(self):
@@ -148,35 +155,23 @@ class TiMoSDataset(BaseDataset):
         data = []
         for row in self.anno:
             uid = str(row['video'])
-            if uid not in self.narrations:
+            q_type = row['category']
+            if str(row['video']) not in self.narrations:
                 continue
-            question, truth = row['question'], row['answer']
-            qid = row['qid']
-            q_type = row['qid'].split('_')[0]
-            choices = [row['a0'], row['a1'], row['a2'], row['a3'], row['a4']]
-            quid = uid
             narration = self.format_narration(self.narrations[uid])
-            duration = int(self.durations[uid])
+            
+            # duration = int(self.durations[quid])
             data.append({
-                'quid': quid,
                 'uid': uid,
-                'qid': qid,
                 'q_type': q_type,
                 'narration': narration,
-                'question': question,
-                'optionA': choices[0],
-                'optionB': choices[1],
-                'optionC': choices[2],
-                'optionD': choices[3],
-                'optionE': choices[4],
-                'truth': truth,
-                'duration': duration,
+                'num_frames': len(narration),
             })
         return data
-    
-class TiMoSBCDataset(BaseDataset):
+
+class TiMSumBCDataset(BaseDataset):
     def __init__(self, args, quids_to_exclude=None, num_examples_to_run=-1):
-        self.set_ukey('quid')
+        self.set_ukey('uid')
         super().__init__(args, quids_to_exclude=quids_to_exclude, num_examples_to_run=num_examples_to_run)
 
     def get_descriptions(self):
@@ -185,9 +180,14 @@ class TiMoSBCDataset(BaseDataset):
         return narrations
 
     def format_narration(self, narr):
-        if isinstance(narr, list):
-            caption_every = int(1/self.args.fps)
-            narr = '.\n'.join([f'{int(i*caption_every)}: {cap}' for i, cap in enumerate(narr[::caption_every])])
+        # total_num_frames = len(narr)
+        # num_frames = total_num_frames
+        # if self.args.max_num_frames is not None:
+        #     num_frames = min(self.args.max_num_frames, num_frames)
+        # frame_idxs = np.linspace(0, total_num_frames, num_frames, endpoint=False).astype(np.int64)
+        # if isinstance(narr, dict):
+        #     narr = list(narr.values())
+        # narr = [narr[i] for i in frame_idxs]
         return narr
 
     def get_anno(self):
@@ -198,38 +198,28 @@ class TiMoSBCDataset(BaseDataset):
         for row in self.anno:
             uid = str(row['qid'])
             question, truth = row['question'], row['answer']
-            # qid = row['qid']
-            quid, qid = uid.split('_')
-            q_type = row['category']
             choices = [row['a0'], row['a1']]
-            # quid = qid
-
-            if quid not in self.narrations:
+            if str(row['video']) in self.narrations:
+                narration = self.format_narration(self.narrations[str(row['video'])])
+            else:
                 continue
-
-            narration = self.format_narration(self.narrations[quid])
-            duration = int(self.durations[quid])
             data.append({
-                'quid': quid,
                 'uid': uid,
-                'qid': qid,
-                'q_type': q_type,
                 'narration': narration,
                 'question': question,
                 'optionA': choices[0],
                 'optionB': choices[1],
                 'truth': truth,
-                'duration': duration,
             })
         return data
 
 def get_dataset(args, quids_to_exclude=None, num_examples_to_run=-1):
     if args.dataset == 'egoschema':
         return EgoSchemaDataset(args, quids_to_exclude=quids_to_exclude, num_examples_to_run=num_examples_to_run)
-    elif args.dataset == 'timos':
-        return TiMoSDataset(args, quids_to_exclude=quids_to_exclude, num_examples_to_run=num_examples_to_run)
-    elif args.dataset == 'timos_bc':
-        return TiMoSBCDataset(args, quids_to_exclude=quids_to_exclude, num_examples_to_run=num_examples_to_run)
+    elif args.dataset == 'tim_sum':
+        return TiMSumDataset(args, quids_to_exclude=quids_to_exclude, num_examples_to_run=num_examples_to_run)
+    elif args.dataset == 'tim_sum_bc':
+        return TiMSumBCDataset(args, quids_to_exclude=quids_to_exclude, num_examples_to_run=num_examples_to_run)
     else:
         return NextDataset(args, quids_to_exclude=quids_to_exclude, num_examples_to_run=num_examples_to_run)
 
