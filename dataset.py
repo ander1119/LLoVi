@@ -1,3 +1,4 @@
+import os
 import numpy as np
 from util import save_json, load_json, save_pkl, load_pkl, makedir, parse_args
 from torch.utils.data import Dataset
@@ -130,14 +131,26 @@ class NextDataset(BaseDataset):
 class TiMSumDataset(BaseDataset):
     def __init__(self, args, quids_to_exclude=None, num_examples_to_run=-1):
         self.set_ukey('uid')
+        self.subtitle_root = args.subtitle_root
         super().__init__(args, quids_to_exclude=quids_to_exclude, num_examples_to_run=num_examples_to_run)
+
+    def get_subtitles(self, movie_id):
+        annotations = load_json(os.path.join(self.subtitle_root, f'{movie_id}.json'))
+        subtitles = []
+        for anno in annotations.values():
+            subtitle = anno['subtitles'] if anno['subtitles'] is not None else []
+            subtitle = ','.join(subtitle)
+            subtitles.append(subtitle)
+        subtitles = subtitles[::3]
+        return subtitles
 
     def get_descriptions(self):
         narrations = load_json(self.args.data_path)
         # narrations = {str(k).split('_')[0]: v for k, v in narrations.items()}
         return narrations
 
-    def format_narration(self, narr):
+    def format_narration(self, narr, subtitles):
+        assert len(narr) == len(subtitles)
         total_num_frames = len(narr)
         num_frames = total_num_frames
         if self.args.max_num_frames is not None:
@@ -145,8 +158,11 @@ class TiMSumDataset(BaseDataset):
         frame_idxs = np.linspace(0, total_num_frames, num_frames, endpoint=False).astype(np.int64)
         if isinstance(narr, dict):
             narr = list(narr.values())
-        narr = [narr[i] for i in frame_idxs]
-        return narr
+
+        res = []
+        for idx in frame_idxs:
+            res.append(f'(description: {narr[idx]}, subtitles: {subtitles[idx]})')
+        return '\n'.join(res), num_frames
 
     def get_anno(self):
         return load_json(self.args.anno_path)  # video,frame_count,width,height,question,answer,qid,type,a0,a1,a2,a3,a4
@@ -158,14 +174,15 @@ class TiMSumDataset(BaseDataset):
             q_type = row['category']
             if str(row['video']) not in self.narrations:
                 continue
-            narration = self.format_narration(self.narrations[uid])
+            subtitles = self.get_subtitles(row['video'])
+            narration_with_subtitles, num_frames = self.format_narration(self.narrations[uid], subtitles)
             
             # duration = int(self.durations[quid])
             data.append({
                 'uid': uid,
                 'q_type': q_type,
-                'narration': narration,
-                'num_frames': len(narration),
+                'narration': narration_with_subtitles,
+                'num_frames': num_frames,
             })
         return data
 

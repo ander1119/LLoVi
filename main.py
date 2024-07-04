@@ -51,6 +51,11 @@ def launch():
             processed[ukey]['info'] = {k: v for k, v in info.items() if k != 'response'}
         if i % args.save_every == 0:
             save_json(processed, output_path)
+            if args.task == 'bc':
+                try:
+                    eval_bc_tim(processed)
+                except e:
+                    print(e)
         pbar.update(1)
 
     # incorporate with backup prediction

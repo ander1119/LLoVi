@@ -1,11 +1,16 @@
 from pathlib import Path
+import json
+import numpy as np
 import pandas as pd
 from pprint import pprint
 from collections import Counter, defaultdict
 import argparse
 import pdb
 from util import *
+from sklearn.metrics import classification_report, precision_recall_fscore_support
 
+map_id_trope = json.load(open('../tropes/map_id_trope.json', 'r'))
+map_trope_cat = json.load(open('../tropes/map_trope_cat.json', 'r'))
 
 def eval_qa_egoschema(data):
     num_valids = 0
@@ -32,29 +37,68 @@ def eval_qa_egoschema_from_file(fp):
         data = data['data']
     eval_qa_egoschema(data)
 
-def eval_bc_timos_from_file(pred_file_path):
-    data = load_json(pred_file_path)
-    if 'data' in data:
-        data = data['data']
-    eval_bc_tim(data)
-
-def eval_bc_tim(preds):
-    from sklearn.metrics import precision_recall_fscore_support
-    predictions = []
-    groundtruths = []
-
-    for uid, info in preds.items():
-        predictions.append(1 if info['pred'] == 0 else 1)
-        groundtruths.append(1 if info['truth'] == 0 else 1)
-
+def bc_metric(predictions, groundtruths):
     accuracy = sum(1 for p, t in zip(predictions, groundtruths) if p == t) / len(groundtruths)
+    weighted_f1 = precision_recall_fscore_support(groundtruths, predictions, average="weighted")
     f1 = precision_recall_fscore_support(groundtruths, predictions, average="binary")
     score = {
         'precision': f1[0],
         'recall': f1[1],
         'f1': f1[2],
+        'weighted_precision': weighted_f1[0],
+        'weighted_recall': weighted_f1[1],
+        'weighted_f1': weighted_f1[2],
         'accuracy': accuracy
     }
+    return score
+
+def eval_bc_timos_from_file(pred_file_path, strategy='all'):
+    data = load_json(pred_file_path)
+    if 'data' in data:
+        data = data['data']
+    if strategy == 'all':
+        eval_bc_tim(data)
+    elif strategy == 'per_cat':
+        eval_bc_tim_per_cat(data)
+
+def eval_bc_tim_per_cat(preds):
+    trope_result = {}
+
+    for data in preds.values():
+        answer = 1 if data['pred'] == 0 else 0
+        groundtruth = 1 if data['truth'] == 0 else 0
+        trope_id = data['uid'].split('_')[-1]
+        trope = map_id_trope[trope_id]
+        cat = map_trope_cat[trope]
+        if cat not in trope_result:
+            trope_result[cat] = {}
+        if trope not in trope_result[cat]:
+            trope_result[cat][trope] = {
+                'answers': [],
+                'groundtruths': [],
+            }
+        trope_result[cat][trope]['answers'].append(answer)
+        trope_result[cat][trope]['groundtruths'].append(groundtruth)
+    
+    for cat, result in trope_result.items():
+        min_length = min(len(r['groundtruths']) for r in result.values())
+        gts = np.array([r['groundtruths'][:min_length] for r in result.values()]).T
+        preds = np.array([r['answers'][:min_length] for r in result.values()]).T
+
+        report = classification_report(gts, preds, target_names=result.keys(), zero_division=0.0, digits=4)
+        print('==============================================')
+        print(cat)
+        print(report)
+
+def eval_bc_tim(preds):
+    predictions = []
+    groundtruths = []
+
+    for uid, info in preds.items():
+        predictions.append(1 if info['pred'] == 0 else 0)
+        groundtruths.append(1 if info['truth'] == 0 else 0)
+
+    score = bc_metric(predictions, groundtruths)
     print(score)
     stat = {}
     stat['data'] = preds

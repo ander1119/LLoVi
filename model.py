@@ -42,20 +42,9 @@ class GPT(Model):
         try:
             res = openai.ChatCompletion.create(**kwargs)
             return res
-        except openai.APIConnectionError as e:
-            print(f'APIConnectionError: {e}')
-            time.sleep(30)
+        except openai.error.RateLimitError as e:
+            time.sleep(1)
             return self.get_response(**kwargs)
-        except openai.RateLimitError as e:
-            print(f'RateLimitError: {e}')
-            exit()
-            return self.get_response(**kwargs)
-        except openai.APITimeoutError as e:
-            print(f'APITimeoutError: {e}')
-            time.sleep(30)
-            return self.get_response(**kwargs)
-        except openai.BadRequestError as e:
-            raise e
 
     def forward(self, head, prompts):
         messages = [

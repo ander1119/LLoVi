@@ -169,6 +169,15 @@ class PromptFactory(object):
             post_process_fn = identity
         )
 
+        # timos sum with subtitle (standard)
+        prompt_templates['tim_sum_subtitle'] = PromptTemplate(
+            head = "You are professinoal movie summarizer. You are tasked with summarizing a movie according descriptions and subtitles over frame in movie.",
+            template = [
+                Template('You are given some language descriptions and subtitles of a movie. The movie has ${num_frames} frames and there is a description and subtitles for each frame. Here are the descriptions and subtitlespyt: $narration.\n Please give me a $num_words words summary.')
+            ],
+            post_process_fn = identity
+        )
+
         # tim sum (q)
         prompt_templates['tim_sum_q'] = PromptTemplate(
             head = "You are a trope detector, tasked with identifying the presence or absence of a specific trope in an movie.",

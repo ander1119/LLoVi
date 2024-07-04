@@ -33,7 +33,8 @@ def parse_args():
     # data
     parser.add_argument("--dataset", default='egoschema', type=str)  # 'egoschema', 'nextqa', 'nextgqa', 'intentqa'
     parser.add_argument("--data_path", default='data/egoschema/lavila_subset.json', type=str) 
-    parser.add_argument("--anno_path", default='data/egoschema/subset_anno.json', type=str)  
+    parser.add_argument("--anno_path", default='data/egoschema/subset_anno.json', type=str) 
+    parser.add_argument("--subtitle_root", default='/project/mira/dataset/MovieNet/subtitles', type=str)
     parser.add_argument("--duration_path", default='data/egoschema/duration.json', type=str) 
     parser.add_argument("--max_num_frames", default=120, type=int) 
     parser.add_argument("--fps", default=1.0, type=float) 
